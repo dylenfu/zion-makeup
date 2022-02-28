@@ -18,14 +18,12 @@
 
 package core
 
-
 import (
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"encoding/hex"
 	"fmt"
-	"strings"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/consensus/hotstuff/backend"
@@ -43,6 +41,7 @@ func Encode(validators []common.Address) (string, error) {
 		Validators:    validators,
 		Seal:          make([]byte, types.HotstuffExtraSeal),
 		CommittedSeal: [][]byte{},
+		Salt:          []byte{},
 	}
 
 	payload, err := rlp.EncodeToBytes(&ist)
@@ -54,18 +53,37 @@ func Encode(validators []common.Address) (string, error) {
 }
 
 type Node struct {
-	Address string
-	NodeKey string
-	Static  string
+	Address common.Address
+	NodeKey *ecdsa.PrivateKey
+}
+
+func (n *Node) NodeKeyHex(with0x bool) string {
+	raw := crypto.FromECDSA(n.NodeKey)
+	if with0x {
+		return hexutil.Encode(raw)
+	} else {
+		enc := make([]byte, len(raw)*2)
+		hex.Encode(enc[:], raw)
+		return string(enc)
+	}
+}
+
+func (n *Node) PubKeyHex() string {
+	enc := crypto.CompressPubkey(&n.NodeKey.PublicKey)
+	return hexutil.Encode(enc)
+}
+
+func (n *Node) ID() string {
+	id := PubkeyID(&n.NodeKey.PublicKey)
+	return id.String()
 }
 
 func SortNodes(src []*Node) []*Node {
 	oriAddrs := make([]common.Address, len(src))
-	idxMap := make(map[common.Address]int)
+	nodesMap := make(map[common.Address]*Node)
 	for idx, v := range src {
-		addr := common.HexToAddress(v.Address)
-		oriAddrs[idx] = addr
-		idxMap[addr] = idx
+		oriAddrs[idx] = v.Address
+		nodesMap[v.Address] = v
 	}
 
 	// sort address
@@ -73,18 +91,9 @@ func SortNodes(src []*Node) []*Node {
 
 	list := make([]*Node, 0)
 	for _, val := range valset.AddressList() {
-		idx := idxMap[val]
-		list = append(list, src[idx])
+		list = append(list, nodesMap[val])
 	}
 
-	return list
-}
-
-func NodesAddress(src []*Node) []common.Address {
-	list := make([]common.Address, 0)
-	for _, v := range src {
-		list = append(list, common.HexToAddress(v.Address))
-	}
 	return list
 }
 
@@ -105,43 +114,45 @@ func PubkeyID(pub *ecdsa.PublicKey) Discv5NodeID {
 	return id
 }
 
-func NodeKey2NodeInfo(key string) (string, error) {
-	if !strings.Contains(key, "0x") {
-		key = "0x" + key
-	}
+//
+//func NodeKey2NodeInfo(key string) (string, error) {
+//	if !strings.Contains(key, "0x") {
+//		key = "0x" + key
+//	}
+//
+//	enc, err := hexutil.Decode(key)
+//	if err != nil {
+//		return "", err
+//	}
+//
+//	privKey, err := crypto.ToECDSA(enc)
+//	if err != nil {
+//		return "", err
+//	}
+//
+//	id := PubkeyID(&privKey.PublicKey)
+//	return id.String(), nil
+//}
 
-	enc, err := hexutil.Decode(key)
-	if err != nil {
-		return "", err
-	}
-
-	privKey, err := crypto.ToECDSA(enc)
-	if err != nil {
-		return "", err
-	}
-
-	id := PubkeyID(&privKey.PublicKey)
-	return id.String(), nil
-}
-
-func NodeKey2PublicInfo(key string) (string, error) {
-	if !strings.Contains(key, "0x") {
-		key = "0x" + key
-	}
-
-	dec, err := hexutil.Decode(key)
-	if err != nil {
-		return "", err
-	}
-
-	privKey, err := crypto.ToECDSA(dec)
-	if err != nil {
-		return "", err
-	}
-
-	enc := crypto.CompressPubkey(&privKey.PublicKey)
-	return hexutil.Encode(enc), nil
-}
+//
+//func NodeKey2PublicInfo(key string) (string, error) {
+//	if !strings.Contains(key, "0x") {
+//		key = "0x" + key
+//	}
+//
+//	dec, err := hexutil.Decode(key)
+//	if err != nil {
+//		return "", err
+//	}
+//
+//	privKey, err := crypto.ToECDSA(dec)
+//	if err != nil {
+//		return "", err
+//	}
+//
+//	enc := crypto.CompressPubkey(&privKey.PublicKey)
+//	return hexutil.Encode(enc), nil
+//}
 
 func NodeStaticInfoTemp(src string, ip string, port int) string {
 	return fmt.Sprintf("enode://%s@%s:%d?discport=0", src, ip, port)

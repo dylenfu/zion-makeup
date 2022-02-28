@@ -16,4 +16,4 @@ run:
 	./build/setup -nodes=$(nodes) -config=build/config.json
 
 clean:
-	rm -rf build/nodes alloc-nodes extra static-nodes setup
+	rm -rf build/nodes build/alloc-nodes.json build/extra.dat build/minerlist.txt build/static-nodes.json build/setup
