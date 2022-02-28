@@ -17,3 +17,27 @@
  */
 
 package config
+
+import (
+	"encoding/json"
+
+	"github.com/dylenfu/zion-makeup/pkg/files"
+)
+
+var Conf = new(Config)
+
+type Config struct {
+	IpList    []string
+	StartPort int
+}
+
+func LoadConfig(filepath string) {
+	enc, err := files.ReadFile(filepath)
+	if err != nil {
+		panic(err)
+	}
+
+	if err := json.Unmarshal(enc, Conf); err != nil {
+		panic(err)
+	}
+}

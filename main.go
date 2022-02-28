@@ -21,18 +21,22 @@ package main
 import (
 	"flag"
 
+	"github.com/dylenfu/zion-makeup/config"
 	"github.com/dylenfu/zion-makeup/core"
 )
 
 var (
-	nodes int
+	nodes    int
+	filePath string
 )
 
 func init() {
 	flag.IntVar(&nodes, "nodes", 7, "denotes nodes number")
+	flag.StringVar(&filePath, "config", "config.json", "configuration file path")
 	flag.Parse()
 }
 
 func main() {
+	config.LoadConfig(filePath)
 	core.Run(nodes)
 }

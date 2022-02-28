@@ -25,12 +25,17 @@ import (
 	"os"
 	"path"
 
+	"github.com/dylenfu/zion-makeup/config"
+
 	"github.com/dylenfu/zion-makeup/log"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-const folder = "build"
+const (
+	folder           = "build"
+	initAllocBalance = "100000000000000000000000000000"
+)
 
 func Run(n int) {
 	log.Infof("generate %d nodes", n)
@@ -38,42 +43,9 @@ func Run(n int) {
 	nodes := generateNodes(n)
 	sortedNodes := SortNodes(nodes)
 	saveNodes(sortedNodes)
+	saveAlloc(sortedNodes)
 	generateExtra(sortedNodes)
 	generateStaticNodesFile(sortedNodes)
-}
-
-func dumpNodes(nodes []*Node) {
-	sortedNodes := SortNodes(nodes)
-	for _, v := range sortedNodes {
-		nodeInf, err := NodeKey2NodeInfo(v.NodeKey)
-		if err != nil {
-			panic(err)
-		}
-		pubInf, err := NodeKey2PublicInfo(v.NodeKey)
-		if err != nil {
-			panic(err)
-		}
-		log.Infof("addr: %s, pubKey: %s, nodeKey: %s, static-node-info:%s", v.Address, pubInf, v.NodeKey, nodeInf)
-	}
-	log.Info("==================================================================")
-
-	genesis, err := Encode(NodesAddress(sortedNodes))
-	if err != nil {
-		panic(err)
-	}
-	log.Infof("genesis extra %s", genesis)
-
-	log.Info("==================================================================")
-
-	//if ctx.Bool(saveFlag.Name) {
-	//	folderName := fmt.Sprintf("node%d", i) //strconv.Itoa(i)
-	//	folderPath := path.Join("setup", "nodekeys", folderName)
-	//	os.MkdirAll(folderPath, os.ModePerm)
-	//	ioutil.WriteFile(path.Join(folderPath, "nodekey"), []byte(nodekeys[i]), os.ModePerm)
-	//	ioutil.WriteFile(path.Join(folderPath, "validator"), []byte(str), os.ModePerm)
-	//}
-
-	generateStaticNodesFile(nodes)
 }
 
 func generateNodes(n int) []*Node {
@@ -126,12 +98,15 @@ func generateExtra(sortedNodes []*Node) {
 
 func generateStaticNodesFile(sortedNodes []*Node) {
 	staticNodes := make([]string, 0)
-	for _, v := range sortedNodes {
+	nodesPerMachine := len(sortedNodes) / len(config.Conf.IpList)
+	for i, v := range sortedNodes {
 		nodeInf, err := NodeKey2NodeInfo(v.NodeKey)
 		if err != nil {
 			panic(err)
 		}
-		staticNodes = append(staticNodes, NodeStaticInfoTemp(nodeInf))
+		ipIndex := i / nodesPerMachine
+		port := i%nodesPerMachine + config.Conf.StartPort
+		staticNodes = append(staticNodes, NodeStaticInfoTemp(nodeInf, config.Conf.IpList[ipIndex], port))
 	}
 
 	enc, err := json.MarshalIndent(staticNodes, "", "\t")
@@ -140,6 +115,31 @@ func generateStaticNodesFile(sortedNodes []*Node) {
 	}
 	log.Info(string(enc))
 	if err := ioutil.WriteFile(path.Join(folder, "static-nodes"), enc, os.ModePerm); err != nil {
+		panic(err)
+	}
+}
+
+type AllocInfo struct {
+	PublicKey string `json:"PublicKey"`
+	Balance   string `json:"balance"`
+}
+
+func saveAlloc(sortedNodes []*Node) {
+	nodesMap := make(map[string]*AllocInfo)
+	for _, v := range sortedNodes {
+		pubkey, _ := NodeKey2PublicInfo(v.NodeKey)
+		nodesMap[v.Address] = &AllocInfo{
+			PublicKey: pubkey,
+			Balance:   initAllocBalance,
+		}
+	}
+
+	enc, err := json.MarshalIndent(nodesMap, "", "\t")
+	if err != nil {
+		panic(err)
+	}
+	log.Info(string(enc))
+	if err := ioutil.WriteFile(path.Join(folder, "alloc-nodes"), enc, os.ModePerm); err != nil {
 		panic(err)
 	}
 }

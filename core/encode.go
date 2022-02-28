@@ -143,7 +143,6 @@ func NodeKey2PublicInfo(key string) (string, error) {
 	return hexutil.Encode(enc), nil
 }
 
-func NodeStaticInfoTemp(src string) string {
-	return fmt.Sprintf("enode://%s@127.0.0.1:30300?discport=0", src)
+func NodeStaticInfoTemp(src string, ip string, port int) string {
+	return fmt.Sprintf("enode://%s@%s:%d?discport=0", src, ip, port)
 }
-
