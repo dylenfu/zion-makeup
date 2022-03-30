@@ -27,8 +27,9 @@ import (
 var Conf = new(Config)
 
 type Config struct {
-	IpList    []string
-	StartPort int
+	IpList      []string
+	StartPort   int
+	InitBalance string
 }
 
 func LoadConfig(filepath string) {

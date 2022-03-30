@@ -4,16 +4,17 @@ SHELL=/bin/bash
 GOCMD=GO111MODULE=on go
 GOBUILD=$(GOCMD) build
 GOTEST=$(GOCMD) test
+ENV=$(ONROBOT)
 
 compile:
-	@$(GOBUILD) -o ./build/setup main.go
+	@$(GOBUILD) -o ./build/$(ENV)/setup main.go
 
 compile-linux:
-	GOOS=linux GOARCH=amd64 $(GOBUILD) -o ./build/setup-linux main.go
+	GOOS=linux GOARCH=amd64 $(GOBUILD) -o ./build/$(ENV)/setup-linux main.go
 
 run:
 	@echo nodes number $(nodes)
-	./build/setup -nodes=$(nodes) -config=build/config.json
+	./build/$(ENV)/setup -nodes=$(nodes) -env=$(ENV) -config=build/$(ENV)/config.json
 
 clean:
-	rm -rf build/nodes build/alloc-nodes.json build/extra.dat build/minerlist.txt build/static-nodes.json build/setup
+	rm -rf build/$(ENV)/nodes build/$(ENV)/alloc-nodes.json build/$(ENV)/extra.dat build/$(ENV)/minerlist.txt build/$(ENV)/static-nodes.json build/$(ENV)/setup build/$(ENV)/minerlist.sh

@@ -28,9 +28,11 @@ import (
 var (
 	nodes    int
 	filePath string
+	env      string
 )
 
 func init() {
+	flag.StringVar(&env, "env", "local", "environment for nodes")
 	flag.IntVar(&nodes, "nodes", 7, "denotes nodes number")
 	flag.StringVar(&filePath, "config", "config.json", "configuration file path")
 	flag.Parse()
@@ -38,5 +40,5 @@ func init() {
 
 func main() {
 	config.LoadConfig(filePath)
-	core.Run(nodes)
+	core.Run(env, nodes, config.Conf.InitBalance)
 }
