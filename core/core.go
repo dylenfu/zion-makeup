@@ -29,7 +29,6 @@ import (
 	"github.com/dylenfu/zion-makeup/config"
 	"github.com/dylenfu/zion-makeup/log"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
@@ -51,7 +50,7 @@ func Run(dir string, n int, initAllocBalance string) {
 	//saveAlloc(sortedNodes, initAllocBalance)
 	//saveMinerList(sortedNodes)
 	//generateExtra(sortedNodes)
-	saveGenesis(&defaultGenesisConfig, sortedNodes, initAllocBalance)
+	saveGenesis(sortedNodes, initAllocBalance)
 	generateStaticNodesFile(sortedNodes)
 }
 
@@ -66,8 +65,6 @@ func generateNodes(n int) []*Node {
 			Address: addr,
 			NodeKey: key,
 		}
-
-		log.Infof("addr: %s, pubKey: %s", addr, node.PubKeyHex())
 
 		nodes = append(nodes, node)
 	}
@@ -165,40 +162,33 @@ func saveAlloc(sortedNodes []*Node, initAllocBalance string) {
 	}
 }
 
-func saveGenesis(genesis *core.Genesis, sortedNodes []*Node, initAllocBalance string) {
-	nodesMap := make(core.GenesisAlloc)
-	balance, _ := new(big.Int).SetString(initAllocBalance, 10)
+func saveGenesis(sortedNodes []*Node, initAllocBalance string) {
+	nodesMap := make(map[string]*AllocInfo)
 	for _, v := range sortedNodes {
-		pubkey, _ := hexutil.Decode(v.PubKeyHex())
-		nodesMap[v.Address] = core.GenesisAccount{
-			Balance:   balance,
+		pubkey := v.PubKeyHex()
+		nodesMap[v.Address.Hex()] = &AllocInfo{
 			PublicKey: pubkey,
+			Balance:   initAllocBalance,
 		}
 	}
 
-	genesis.Alloc = nodesMap
+	alloc, err := json.MarshalIndent(nodesMap, "", "\t")
+	if err != nil {
+		panic(err)
+	}
 
 	list := make([]common.Address, 0)
 	for _, v := range sortedNodes {
 		list = append(list, v.Address)
 	}
 
-	extraHex, err := Encode(list)
-	if err != nil {
-		panic(err)
-	}
-	extra, err := hexutil.Decode(extraHex)
-	if err != nil {
-		panic(err)
-	}
-	genesis.ExtraData = extra
-
-	enc, err := genesis.MarshalJSON()
+	extra, err := Encode(list)
 	if err != nil {
 		panic(err)
 	}
 
-	if err := ioutil.WriteFile(path.Join(env, "genesis.json"), []byte(enc), os.ModePerm); err != nil {
+	data := genesisTemplate(string(alloc), extra)
+	if err := ioutil.WriteFile(path.Join(env, "genesis.json"), []byte(data), os.ModePerm); err != nil {
 		panic(err)
 	}
 }
@@ -239,6 +229,37 @@ func saveGenesis(genesis *core.Genesis, sortedNodes []*Node, initAllocBalance st
 */
 
 var zero = big.NewInt(0)
+
+func genesisTemplate(alloc, extra string) string {
+	return fmt.Sprintf(`
+{
+    "config": {
+        "chainId": 60801, 
+        "homesteadBlock": 0,
+        "eip150Block": 0,
+        "eip155Block": 0,
+        "eip158Block": 0,
+        "byzantiumBlock": 0,
+        "constantinopleBlock": 0,
+        "petersburgBlock": 0,
+        "istanbulBlock": 0,
+        "berlinBlock": 0,
+        "londonBlock": 0,
+        "hotstuff": {
+            "protocol": "basic"
+        }
+    },
+    "alloc": %s,
+    "coinbase": "0x0000000000000000000000000000000000000000",
+    "difficulty": "0x1",
+    "extraData": "%s",
+    "gasLimit": "0xffffffff",
+    "nonce": "0x4510809143055965",
+    "mixhash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "timestamp": "0x00"
+}`, alloc, extra)
+}
 
 var defaultGenesisConfig = core.Genesis{
 	Config: &params.ChainConfig{

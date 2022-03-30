@@ -24,6 +24,7 @@ import (
 	"crypto/elliptic"
 	"encoding/hex"
 	"fmt"
+	"github.com/dylenfu/zion-makeup/log"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/consensus/hotstuff/backend"
@@ -92,6 +93,7 @@ func SortNodes(src []*Node) []*Node {
 	list := make([]*Node, 0)
 	for _, val := range valset.AddressList() {
 		list = append(list, nodesMap[val])
+		log.Infof("addr: %s, pubKey: %s", val, nodesMap[val].PubKeyHex())
 	}
 
 	return list
