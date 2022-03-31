@@ -43,7 +43,9 @@ var env string
 func Run(dir string, n int, initAllocBalance string) {
 	log.Infof("generate %d nodes", n)
 
+	os.MkdirAll(folder, os.ModePerm)
 	env = path.Join(folder, dir)
+
 	nodes := generateNodes(n)
 	sortedNodes := SortNodes(nodes)
 	saveNodes(sortedNodes)
