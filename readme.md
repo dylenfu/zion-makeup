@@ -25,3 +25,8 @@ make compile
 ```shell script
 make run nodes=7    
 ```
+
+or 
+```shell script
+./setup -config=config.json -nodes=7 -env=local
+```
