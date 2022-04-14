@@ -10,9 +10,9 @@
   "InitBalance": "100000000000000000000000000000"
 }
 ```
-如上，当ip只有一个本地地址时，所有节点分布在一台机器上，static-nodes文件对应的ip即本地地址，端口按顺序递增；<br>
-当ip有多个地址时，节点按顺序分布到不同机器上，每台机器的起始端口为30300<br>
-初始每个validator的账户会分配一定量的native token,如需个性化操作，可以手动修改genesis文件<br>
+. `IPList` indicates that network nodes will be deployed on the machines where these IPs are located. If the number of nodes is greater than the number of machines, the nodes will be distributed on the machines in order.
+. `StartPort` denotes that p2p port started from this value.
+. `InitBalance` denotes that validator account balance for genesis block.
 
 #### how to compile
 ```shell script
